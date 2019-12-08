@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.1
- * 07.12.2019
+ * v0.2
+ * 08.12.2019
  * by Centrix
 */
 
@@ -14,6 +14,7 @@
 #define HEIGHT 4
 
 int field[HEIGHT][WIDTH];
+int score = 0;
 
 int random[] = {2,2,2,2,2,2,2,2,2,4};
 
@@ -50,6 +51,7 @@ int main()
 			fillField(0);
 			break;
 		case 'e':
+		case 27:
 			return 0;
 		default:
 			printf("Error: unknow operaton \'%c\'\n", c);
@@ -77,6 +79,7 @@ void outputField()
 				printf("%4d%s", field[y][x], (WIDTH - x - 1) ? " " : "|\n");
 			else
 				printf("    %s", (WIDTH - x - 1) ? " " : "|\n");
+	printf("Score: %d\n", score);
 }
 
 void randomGeneration()
@@ -110,9 +113,9 @@ void shiftUp()
 			} else if (field[y][x] == field[posFilling][x]
 					&& !isPrevOpSum) {
 				field[posFilling][x] *= 2;
-				posFilling++;
 				field[y][x] = 0;
 				isPrevOpSum = 1;
+				score += field[posFilling++][x];
 			} else {
 				if (field[posFilling][x])
 					posFilling++;
@@ -135,9 +138,9 @@ void shiftLeft()
 			} else if (field[y][x] == field[y][posFilling]
 					&& !isPrevOpSum) {
 				field[y][posFilling] *= 2;
-				posFilling++;
 				field[y][x] = 0;
 				isPrevOpSum = 1;
+				score += field[y][posFilling++];
 			} else {
 				if (field[y][posFilling])
 					posFilling++;
@@ -160,9 +163,9 @@ void shiftDown()
 			} else if (field[y][x] == field[posFilling][x]
 					&& !isPrevOpSum) {
 				field[posFilling][x] *= 2;
-				posFilling--;
 				field[y][x] = 0;
 				isPrevOpSum = 1;
+				score += field[posFilling--][x];
 			} else {
 				if (field[posFilling][x])
 					posFilling--;
@@ -185,9 +188,9 @@ void shiftRight()
 			} else if (field[y][x] == field[y][posFilling]
 					&& !isPrevOpSum) {
 				field[y][posFilling] *= 2;
-				posFilling--;
 				field[y][x] = 0;
 				isPrevOpSum = 1;
+				score += field[y][posFilling--];
 			} else {
 				if (field[y][posFilling])
 					posFilling--;

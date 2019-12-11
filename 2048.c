@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.2
- * 08.12.2019
+ * v0.3
+ * 11.12.2019
  * by Centrix
 */
 
@@ -13,42 +13,47 @@
 #define WIDTH 4
 #define HEIGHT 4
 
-int field[HEIGHT][WIDTH];
+int Field[HEIGHT][WIDTH];
 int score = 0;
 
 int random[] = {2,2,2,2,2,2,2,2,2,4};
 
-void fillField(int filler);
-void outputField();
-void randomGeneration();
+void fillField(int field[HEIGHT][WIDTH], int filler);
+void outputField(int field[HEIGHT][WIDTH]);
+void randomGeneration(int field[HEIGHT][WIDTH]);
 
-void shiftUp();
-void shiftDown();
-void shiftLeft();
-void shiftRight();
+void shiftUp(int field[HEIGHT][WIDTH]);
+void shiftDown(int field[HEIGHT][WIDTH]);
+void shiftLeft(int field[HEIGHT][WIDTH]);
+void shiftRight(int field[HEIGHT][WIDTH]);
+
+int is_go(int field[HEIGHT][WIDTH]);
 
 int main()
 {
 	char c;
 
-	while (1) {
+	fillField(Field, 0);
+
+	while (!is_go(Field)) {
 		switch (c=getch()) {
 		case ' ':
 			break;
 		case 'w':
-			shiftUp();
+			shiftUp(Field);
 			break;
 		case 's':
-			shiftDown();
+			shiftDown(Field);
 			break;
 		case 'a':
-			shiftLeft();
+			shiftLeft(Field);
 			break;
 		case 'd':
-			shiftRight();
+			shiftRight(Field);
 			break;
 		case 'c':
-			fillField(0);
+			fillField(Field, 0);
+			score = 0;
 			break;
 		case 'e':
 		case 27:
@@ -58,20 +63,21 @@ int main()
 			break;
 		}
 		system("cls");
-		randomGeneration();
-		outputField();
+		randomGeneration(Field);
+		outputField(Field);
 	}
+	printf("\nGame Over!\n");
 	return 0;
 }
 
-void fillField(int filler)
+void fillField(int field[HEIGHT][WIDTH], int filler)
 {
 	for (int y = 0; y < HEIGHT; y++)
 		for (int x = 0; x < WIDTH; x++)
 			field[y][x] = filler;
 }
 
-void outputField()
+void outputField(int field[HEIGHT][WIDTH])
 {
 	for (int y = 0; y < HEIGHT; y++)
 		for (int x = 0; x < WIDTH; x++)
@@ -82,12 +88,12 @@ void outputField()
 	printf("Score: %d\n", score);
 }
 
-void randomGeneration()
+void randomGeneration(int field[HEIGHT][WIDTH])
 {
 	int number, pos_0, numOf_0 = 0;
-	int numberZeros();
+	int numberZeros(int field[HEIGHT][WIDTH]);
 
-	if (!(numOf_0 = numberZeros()))
+	if (!(numOf_0 = numberZeros(field)))
 		return;
 	srand(time(NULL));
 	number = random[rand() % 10];
@@ -104,7 +110,7 @@ void randomGeneration()
 		}
 }
 
-void shiftUp()
+void shiftUp(int field[HEIGHT][WIDTH])
 {
 	for (int x = 0; x < WIDTH; x++) {
 		for (int y = 1, posFilling = 0, isPrevOpSum = 0; y < HEIGHT; y++) {
@@ -129,7 +135,7 @@ void shiftUp()
 	}
 }
 
-void shiftLeft()
+void shiftLeft(int field[HEIGHT][WIDTH])
 {
 	for (int y = 0; y < HEIGHT; y++) {
 		for (int x = 1, posFilling = 0, isPrevOpSum = 0; x < WIDTH; x++) {
@@ -154,7 +160,7 @@ void shiftLeft()
 	}
 }
 
-void shiftDown()
+void shiftDown(int field[HEIGHT][WIDTH])
 {
 	for (int x = 0; x < WIDTH; x++) {
 		for (int y = HEIGHT - 2, posFilling = HEIGHT - 1, isPrevOpSum = 0; y >= 0; y--) {
@@ -179,7 +185,7 @@ void shiftDown()
 	}
 }
 
-void shiftRight()
+void shiftRight(int field[HEIGHT][WIDTH])
 {
 	for (int y = 0; y < HEIGHT; y++) {
 		for (int x = WIDTH - 2, posFilling = WIDTH - 1, isPrevOpSum = 0; x >= 0; x--) {
@@ -204,7 +210,7 @@ void shiftRight()
 	}
 }
 
-int numberZeros()
+int numberZeros(int field[HEIGHT][WIDTH])
 {
 	int numOf_0 = 0;
 	for (int y = 0; y < HEIGHT; y++)
@@ -212,4 +218,30 @@ int numberZeros()
 			if (!field[y][x])
 				numOf_0++;
 	return numOf_0;
+}
+
+int is_go(int field[HEIGHT][WIDTH])
+{
+	int f[HEIGHT][WIDTH];
+	if (!numberZeros(field)) {
+		for (int direction = 0; direction < 2; direction++) {
+			for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+					f[y][x] = field[y][x];
+			switch (direction) {
+			case 0:
+				shiftUp(f);
+				break;
+			case 1:
+				shiftLeft(f);
+				break;
+			}
+			for (int y = 0; y < HEIGHT; y++)
+				for (int x = 0; x < WIDTH; x++)
+					if (f[y][x] != field[y][x])
+						return 0;
+		}
+		return 1;
+	}
+	return 0;
 }

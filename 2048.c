@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.4
- * 12.12.2019
+ * v0.5
+ * 21.12.2019
  * by Centrix
 */
 
@@ -84,13 +84,31 @@ void fillField(gfield *gf, int filler)
 
 void outputField(gfield *gf)
 {
+	int maxLenCell(gfield *gf);
+	int mlc = maxLenCell(gf);
+	char cz = ' ';
 	for (int y = 0; y < HEIGHT; y++)
 		for (int x = 0; x < WIDTH; x++)
 			if (gf->field[y][x])
-				printf("%4d%s", gf->field[y][x], (WIDTH - x - 1) ? " " : "|\n");
+				printf("%*d%s", mlc, gf->field[y][x], (WIDTH - x - 1) ? " " : "|\n");
 			else
-				printf("    %s", (WIDTH - x - 1) ? " " : "|\n");
+				printf("%*c%s", mlc, cz, (WIDTH - x - 1) ? " " : "|\n");
 	printf("Score: %d\n", gf->score);
+}
+
+int maxLenCell(gfield *gf)
+{
+	int cell, lc, mlc = 1;
+	for (int y = 0; y < HEIGHT; y++)
+		for (int x = 0; x < WIDTH; x++) {
+			cell = gf->field[y][x];
+			lc = 1;
+			while ((cell /= 10) > 0)
+				lc++;
+			if (lc > mlc)
+				mlc = lc;
+		}
+	return mlc;
 }
 
 void randomGeneration(gfield *gf)

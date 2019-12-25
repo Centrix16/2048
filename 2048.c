@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.5
- * 21.12.2019
+ * v0.6
+ * 25.12.2019
  * by Centrix
 */
 

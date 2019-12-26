@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.6
- * 25.12.2019
+ * v0.7
+ * 26.12.2019
  * by Centrix
 */
 
@@ -10,12 +10,13 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define WIDTH 4
-#define HEIGHT 4
+#define MAXLEN 1024
 
 typedef struct {
-	int field[WIDTH][HEIGHT];
+	int *field;
 	int score;
+	int h;
+	int w;
 } gfield;
 
 gfield Field;
@@ -25,6 +26,12 @@ int randomv[] = {2,2,2,2,2,2,2,2,2,4};
 void fillField(gfield *gf, int filler);
 void outputField(gfield *gf);
 void randomGeneration(gfield *gf);
+int *at(gfield *gf, int y, int x);
+void set_h(gfield *gf, int val);
+void set_w(gfield *gf, int val);
+void set_score(gfield *gf, int val);
+void initField(gfield *gf);
+void freeField(gfield *gf);
 
 void shiftUp(gfield *gf);
 void shiftDown(gfield *gf);
@@ -36,9 +43,20 @@ int is_go(gfield *gf);
 int main()
 {
 	char c;
+	int h, w;
+
+	printf("Enter height: ");
+	scanf("%d", &h);
+	printf("Enter width: ");
+	scanf("%d", &w);
+	set_h(&Field, h);
+	set_w(&Field, w);
+	initField(&Field);
 
 	fillField(&Field, 0);
-	Field.score = 0;
+	set_score(&Field, 0);
+
+	printf("Press 'space' to start...\n");
 
 	while (!is_go(&Field)) {
 		switch (c=getch()) {
@@ -58,10 +76,11 @@ int main()
 			break;
 		case 'c':
 			fillField(&Field, 0);
-			Field.score = 0;
+			set_score(&Field, 0);
 			break;
 		case 'e':
 		case 27:
+			freeField(&Field);
 			return 0;
 		default:
 			printf("Error: unknow operaton \'%c\'\n", c);
@@ -72,14 +91,15 @@ int main()
 		outputField(&Field);
 	}
 	printf("\nGame Over!\n");
+	freeField(&Field);
 	return 0;
 }
 
 void fillField(gfield *gf, int filler)
 {
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++)
-			gf->field[y][x] = filler;
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 0; x < gf->w; x++)
+			*at(gf, y, x) = filler;
 }
 
 void outputField(gfield *gf)
@@ -87,21 +107,21 @@ void outputField(gfield *gf)
 	int maxLenCell(gfield *gf);
 	int mlc = maxLenCell(gf);
 	char cz = ' ';
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++)
-			if (gf->field[y][x])
-				printf("%*d%s", mlc, gf->field[y][x], (WIDTH - x - 1) ? " " : "|\n");
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 0; x < gf->w; x++)
+			if (*at(gf, y, x))
+				printf("%*d%s", mlc, *at(gf, y, x), (gf->w - x - 1) ? " " : "|\n");
 			else
-				printf("%*c%s", mlc, cz, (WIDTH - x - 1) ? " " : "|\n");
+				printf("%*c%s", mlc, cz, (gf->w - x - 1) ? " " : "|\n");
 	printf("Score: %d\n", gf->score);
 }
 
 int maxLenCell(gfield *gf)
 {
 	int cell, lc, mlc = 1;
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++) {
-			cell = gf->field[y][x];
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 0; x < gf->w; x++) {
+			cell = *at(gf, y, x);
 			lc = 1;
 			while ((cell /= 10) > 0)
 				lc++;
@@ -122,105 +142,141 @@ void randomGeneration(gfield *gf)
 	number = randomv[rand() % 10];
 	srand(time(NULL));
 	pos_0 = rand() % numOf_0;
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++) {
-			if (!pos_0 && !gf->field[y][x]) {
-				gf->field[y][x] = number;
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 0; x < gf->w; x++) {
+			if (!pos_0 && !*at(gf, y, x)) {
+				*at(gf, y, x) = number;
 				return;
 			}
-			if (!gf->field[y][x])
+			if (!*at(gf, y, x))
 				pos_0--;
 		}
 }
 
+int *at(gfield *gf, int y, int x)
+{
+	return &(gf->field[gf->w * y + x]);
+}
+
+void set_h(gfield *gf, int val)
+{
+	gf->h = val;
+}
+
+void set_w(gfield *gf, int val)
+{
+	gf->w = val;
+}
+
+void set_score(gfield *gf, int val)
+{
+	if (val < 0)
+		val = -val;
+	gf->score = val;
+}
+
+void initField(gfield *gf)
+{
+	int size = gf->h * gf->w;
+	if ((gf->field = (int *) malloc(size * sizeof(int))) == NULL) {
+		printf("Error: not enough memory\n");
+		exit(0);
+	}
+}
+
+void freeField(gfield *gf)
+{
+	free(gf->field);
+}
+
 void shiftUp(gfield *gf)
 {
-	for (int x = 0; x < WIDTH; x++)
-		for (int y = 1, posFilling = 0, isPrevOpSum = 0; y < HEIGHT; y++)
-			if (!gf->field[y][x]) {
+	for (int x = 0; x < gf->w; x++)
+		for (int y = 1, posFilling = 0, isPrevOpSum = 0; y < gf->h; y++)
+			if (!*at(gf, y, x)) {
 				continue;
-			} else if (gf->field[y][x] == gf->field[posFilling][x]
+			} else if (*at(gf, y, x) == *at(gf, posFilling, x)
 					&& !isPrevOpSum) {
-				gf->field[posFilling][x] *= 2;
-				gf->field[y][x] = 0;
+				*at(gf, posFilling, x) *= 2;
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 1;
-				gf->score += gf->field[posFilling++][x];
+				gf->score += *at(gf, posFilling++, x);
 			} else {
-				if (gf->field[posFilling][x])
+				if (*at(gf, posFilling, x))
 					posFilling++;
 				if (y == posFilling)
 					continue;
-				gf->field[posFilling][x] = gf->field[y][x];
-				gf->field[y][x] = 0;
+				*at(gf, posFilling, x) = *at(gf, y, x);
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 0;
 			}
 }
 
 void shiftLeft(gfield *gf)
 {
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 1, posFilling = 0, isPrevOpSum = 0; x < WIDTH; x++)
-			if (!gf->field[y][x]) {
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 1, posFilling = 0, isPrevOpSum = 0; x < gf->w; x++)
+			if (!*at(gf, y, x)) {
 				continue;
-			} else if (gf->field[y][x] == gf->field[y][posFilling]
+			} else if (*at(gf, y, x) == *at(gf, y, posFilling)
 					&& !isPrevOpSum) {
-				gf->field[y][posFilling] *= 2;
-				gf->field[y][x] = 0;
+				*at(gf, y, posFilling) *= 2;
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 1;
-				gf->score += gf->field[y][posFilling++];
+				gf->score += *at(gf, y, posFilling++);
 			} else {
-				if (gf->field[y][posFilling])
+				if (*at(gf, y, posFilling))
 					posFilling++;
 				if (x == posFilling)
 					continue;
-				gf->field[y][posFilling] = gf->field[y][x];
-				gf->field[y][x] = 0;
+				*at(gf, y, posFilling) = *at(gf, y, x);
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 0;
 			}
 }
 
 void shiftDown(gfield *gf)
 {
-	for (int x = 0; x < WIDTH; x++)
-		for (int y = HEIGHT - 2, posFilling = HEIGHT - 1, isPrevOpSum = 0; y >= 0; y--)
-			if (!gf->field[y][x]) {
+	for (int x = 0; x < gf->w; x++)
+		for (int y = gf->h - 2, posFilling = gf->h - 1, isPrevOpSum = 0; y >= 0; y--)
+			if (!*at(gf, y, x)) {
 				continue;
-			} else if (gf->field[y][x] == gf->field[posFilling][x]
+			} else if (*at(gf, y, x) == *at(gf, posFilling, x)
 					&& !isPrevOpSum) {
-				gf->field[posFilling][x] *= 2;
-				gf->field[y][x] = 0;
+				*at(gf, posFilling, x) *= 2;
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 1;
-				gf->score += gf->field[posFilling--][x];
+				gf->score += *at(gf, posFilling--, x);
 			} else {
-				if (gf->field[posFilling][x])
+				if (*at(gf, posFilling, x))
 					posFilling--;
 				if (y == posFilling)
 					continue;
-				gf->field[posFilling][x] = gf->field[y][x];
-				gf->field[y][x] = 0;
+				*at(gf, posFilling, x) = *at(gf, y, x);
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 0;
 			}
 }
 
 void shiftRight(gfield *gf)
 {
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = WIDTH - 2, posFilling = WIDTH - 1, isPrevOpSum = 0; x >= 0; x--)
-			if (!gf->field[y][x]) {
+	for (int y = 0; y < gf->h; y++)
+		for (int x = gf->w - 2, posFilling = gf->w - 1, isPrevOpSum = 0; x >= 0; x--)
+			if (!*at(gf, y, x)) {
 				continue;
-			} else if (gf->field[y][x] == gf->field[y][posFilling]
+			} else if (*at(gf, y, x) == *at(gf, y, posFilling)
 					&& !isPrevOpSum) {
-				gf->field[y][posFilling] *= 2;
-				gf->field[y][x] = 0;
+				*at(gf, y, posFilling) *= 2;
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 1;
-				gf->score += gf->field[y][posFilling--];
+				gf->score += *at(gf, y, posFilling--);
 			} else {
-				if (gf->field[y][posFilling])
+				if (*at(gf, y, posFilling))
 					posFilling--;
 				if (x == posFilling)
 					continue;
-				gf->field[y][posFilling] = gf->field[y][x];
-				gf->field[y][x] = 0;
+				*at(gf, y, posFilling) = *at(gf, y, x);
+				*at(gf, y, x) = 0;
 				isPrevOpSum = 0;
 			}
 }
@@ -228,9 +284,9 @@ void shiftRight(gfield *gf)
 int numberZeros(gfield *gf)
 {
 	int numOf_0 = 0;
-	for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++)
-			if (!gf->field[y][x])
+	for (int y = 0; y < gf->h; y++)
+		for (int x = 0; x < gf->w; x++)
+			if (!*at(gf, y, x))
 				numOf_0++;
 	return numOf_0;
 }
@@ -240,9 +296,9 @@ int is_go(gfield *gf)
 	if (!numberZeros(gf)) {
 		gfield f;
 		for (int direction = 0; direction < 2; direction++) {
-			for (int y = 0; y < HEIGHT; y++)
-				for (int x = 0; x < WIDTH; x++)
-					f.field[y][x] = gf->field[y][x];
+			for (int y = 0; y < gf->h; y++)
+				for (int x = 0; x < gf->w; x++)
+					*at(&f, y, x) = *at(&f, y, x);
 			switch (direction) {
 			case 0:
 				shiftUp(&f);
@@ -251,9 +307,9 @@ int is_go(gfield *gf)
 				shiftLeft(&f);
 				break;
 			}
-			for (int y = 0; y < HEIGHT; y++)
-				for (int x = 0; x < WIDTH; x++)
-					if (f.field[y][x] != gf->field[y][x])
+			for (int y = 0; y < gf->h; y++)
+				for (int x = 0; x < gf->w; x++)
+					if (*at(&f, y, x) != *at(&f, y, x))
 						return 0;
 		}
 		return 1;

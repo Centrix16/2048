@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.7
- * 26.12.2019
+ * v0.8
+ * 27.12.2019
  * by Centrix
 */
 
@@ -19,19 +19,34 @@ typedef struct {
 	int w;
 } gfield;
 
-gfield Field;
+typedef struct {
+	int *rand_m;
+	int sm_comp;
+	int lg_comp;
+	int sm_comp_size;
+	int lg_comp_size;
+	int fill;
+} grand;
 
-int randomv[] = {2,2,2,2,2,2,2,2,2,4};
+gfield Field;
+grand Rand;
 
 void fillField(gfield *gf, int filler);
 void outputField(gfield *gf);
-void randomGeneration(gfield *gf);
+void randomGeneration(gfield *gf, grand *gr);
 int *at(gfield *gf, int y, int x);
 void set_h(gfield *gf, int val);
 void set_w(gfield *gf, int val);
 void set_score(gfield *gf, int val);
 void initField(gfield *gf);
 void freeField(gfield *gf);
+
+void set_smc_r(grand *gr, int val);
+void set_lgc_r(grand *gr, int val);
+void set_smc_size_r(grand *gr, int val);
+void set_lgc_size_r(grand *gr, int val);
+void initRand(grand *gr);
+void freeRand(grand *gr);
 
 void shiftUp(gfield *gf);
 void shiftDown(gfield *gf);
@@ -45,16 +60,24 @@ int main()
 	char c;
 	int h, w;
 
+	printf("\t\t\t2048\n\n");
+
 	printf("Enter height: ");
 	scanf("%d", &h);
 	printf("Enter width: ");
 	scanf("%d", &w);
+
 	set_h(&Field, h);
 	set_w(&Field, w);
-	initField(&Field);
-
-	fillField(&Field, 0);
 	set_score(&Field, 0);
+	initField(&Field);
+	fillField(&Field, 0);
+
+	set_smc_r(&Rand, 2);
+	set_lgc_r(&Rand, 4);
+	set_smc_size_r(&Rand, 9);
+	set_lgc_size_r(&Rand, 1);
+	initRand(&Rand);
 
 	printf("Press 'space' to start...\n");
 
@@ -81,17 +104,21 @@ int main()
 		case 'e':
 		case 27:
 			freeField(&Field);
+			freeRand(&Rand);
 			return 0;
 		default:
 			printf("Error: unknow operaton \'%c\'\n", c);
 			break;
 		}
 		system("cls");
-		randomGeneration(&Field);
+		randomGeneration(&Field, &Rand);
 		outputField(&Field);
 	}
 	printf("\nGame Over!\n");
+
 	freeField(&Field);
+	freeRand(&Rand);
+
 	return 0;
 }
 
@@ -131,7 +158,7 @@ int maxLenCell(gfield *gf)
 	return mlc;
 }
 
-void randomGeneration(gfield *gf)
+void randomGeneration(gfield *gf, grand *gr)
 {
 	int number, pos_0, numOf_0 = 0;
 	int numberZeros(gfield *gf);
@@ -139,7 +166,7 @@ void randomGeneration(gfield *gf)
 	if (!(numOf_0 = numberZeros(gf)))
 		return;
 	srand(time(NULL));
-	number = randomv[rand() % 10];
+	number = gr->rand_m[rand() % 10];
 	srand(time(NULL));
 	pos_0 = rand() % numOf_0;
 	for (int y = 0; y < gf->h; y++)
@@ -178,8 +205,10 @@ void set_score(gfield *gf, int val)
 void initField(gfield *gf)
 {
 	int size = gf->h * gf->w;
+
 	if ((gf->field = (int *) malloc(size * sizeof(int))) == NULL) {
 		printf("Error: not enough memory\n");
+		freeField(gf);
 		exit(0);
 	}
 }
@@ -187,6 +216,46 @@ void initField(gfield *gf)
 void freeField(gfield *gf)
 {
 	free(gf->field);
+}
+
+void set_smc_r(grand *gr, int val)
+{
+	gr->sm_comp = val;
+}
+
+void set_lgc_r(grand *gr, int val)
+{
+	gr->lg_comp = val;
+}
+
+void set_smc_size_r(grand *gr, int val)
+{
+	gr->sm_comp_size = val;
+}
+void set_lgc_size_r(grand *gr, int val)
+{
+	gr->lg_comp_size = val;
+}
+
+void initRand(grand *gr)
+{
+	int i;
+	int size = gr->sm_comp_size + gr->lg_comp_size;
+	if ((gr->rand_m = (int *) malloc(size * sizeof(int))) == NULL) {
+		printf("Error: not enough memory\n");
+		freeRand(gr);
+		exit(0);
+	}
+
+	for (i = 0; i < gr->sm_comp_size; i++)
+		gr->rand_m[i] = gr->sm_comp;
+	for (; i < size; i++)
+		gr->rand_m[i] = gr->lg_comp;
+}
+
+void freeRand(grand *gr)
+{
+	free(gr->rand_m);
 }
 
 void shiftUp(gfield *gf)
@@ -295,10 +364,13 @@ int is_go(gfield *gf)
 {
 	if (!numberZeros(gf)) {
 		gfield f;
+		f.h = gf->h;
+		f.w = gf->w;
+		initField(&f);
 		for (int direction = 0; direction < 2; direction++) {
 			for (int y = 0; y < gf->h; y++)
 				for (int x = 0; x < gf->w; x++)
-					*at(&f, y, x) = *at(&f, y, x);
+					*at(&f, y, x) = *at(gf, y, x);
 			switch (direction) {
 			case 0:
 				shiftUp(&f);
@@ -309,9 +381,12 @@ int is_go(gfield *gf)
 			}
 			for (int y = 0; y < gf->h; y++)
 				for (int x = 0; x < gf->w; x++)
-					if (*at(&f, y, x) != *at(&f, y, x))
+					if (*at(&f, y, x) != *at(gf, y, x)) {
+						freeField(&f);
 						return 0;
+					}
 		}
+		freeField(&f);
 		return 1;
 	}
 	return 0;

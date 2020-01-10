@@ -1,7 +1,7 @@
 /*
  * 2048 -- the legendary game is now in the console!
- * v0.8
- * 27.12.2019
+ * v0.9
+ * 10.01.2020
  * by Centrix
 */
 
@@ -11,12 +11,13 @@
 #include <time.h>
 
 #define MAXLEN 1024
+#define SFILE "save.txt"
 
 typedef struct {
-	int *field;
-	int score;
 	int h;
 	int w;
+	int score;
+	int *field;
 } gfield;
 
 typedef struct {
@@ -40,6 +41,9 @@ void set_w(gfield *gf, int val);
 void set_score(gfield *gf, int val);
 void initField(gfield *gf);
 void freeField(gfield *gf);
+
+void save(gfield *gf);
+void load(gfield *gf);
 
 void set_smc_r(grand *gr, int val);
 void set_lgc_r(grand *gr, int val);
@@ -84,6 +88,12 @@ int main()
 	while (!is_go(&Field)) {
 		switch (c=getch()) {
 		case ' ':
+			break;
+		case 'o':
+			save(&Field);
+			break;
+		case 'l':
+			load(&Field);
 			break;
 		case 'w':
 			shiftUp(&Field);
@@ -216,6 +226,42 @@ void initField(gfield *gf)
 void freeField(gfield *gf)
 {
 	free(gf->field);
+}
+
+void save(gfield *gf)
+{
+	FILE *fp;
+
+	if ((fp = fopen(SFILE, "wb"))==NULL)
+	{
+		printf("Error: not open file %s\n", SFILE);
+		return;
+	}
+
+	fwrite(&gf->h, sizeof(int), 1, fp);
+	fwrite(&gf->w, sizeof(int), 1, fp);
+	fwrite(&gf->score, sizeof(int), 1, fp);
+	fwrite(at(gf, 0, 0), sizeof(int), gf->h * gf->w, fp);
+
+	fclose(fp);
+}
+
+void load(gfield *gf)
+{
+	FILE *fp;
+
+	if ((fp = fopen(SFILE, "rb"))==NULL)
+	{
+		printf("Error: not open file %s\n", SFILE);
+		return;
+	}
+
+	fread(&gf->h, sizeof(int), 1, fp);
+	fread(&gf->w, sizeof(int), 1, fp);
+	fread(&gf->score, sizeof(int), 1, fp);
+	fread(at(gf, 0, 0), sizeof(int), gf->h * gf->w, fp);
+
+	fclose(fp);
 }
 
 void set_smc_r(grand *gr, int val)
